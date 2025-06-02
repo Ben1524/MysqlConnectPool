@@ -95,6 +95,10 @@ add_library(mysqlconnectpool_lib STATIC
         utils/EventDispatcher.cpp
         utils/EventDispatcher.h
         utils/MPSCQueue.h
+        time/TimerQueue.cpp
+        time/TimerQueue.h
+        time/Timer.cpp
+        time/Timer.h
 )
 
 

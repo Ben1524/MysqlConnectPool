@@ -7,6 +7,7 @@
 
 #ifndef MYSQLCONNECTPOOL_EVENTLOOP_H
 #define MYSQLCONNECTPOOL_EVENTLOOP_H
+#include "MPSCQueue.h"
 #include <NonCopyable.h>
 #include <thread>
 #include <memory>
@@ -22,6 +23,7 @@ namespace cxk
 {
 class EventDispatcher;
 class Poller; // 前向声明Poller类
+class TimerQueue;
 using EventDispatcherList = std::vector<EventDispatcher *>;
 using Func = std::function<void()>;
 using TimerId = std::size_t;
@@ -50,9 +52,9 @@ private:
     EventDispatcherList activeDispatchers_; // 触发的事件分发器列表
     EventDispatcher *currentActiveDispatcher_; // 当前活跃的事件分发器
     bool eventHandling_; // 是否正在处理事件
-    MpscQueue<Func> funcs_; // 待执行的函数队列（多生产者单消费者）
+    MPSCQueue<Func> funcs_; // 待执行的函数队列（多生产者单消费者）
     std::unique_ptr<TimerQueue> timerQueue_; // 定时器队列
-    MpscQueue<Func> funcsOnQuit_; // 退出时待执行的函数队列
+    MPSCQueue<Func> funcsOnQuit_; // 退出时待执行的函数队列
     bool callingFuncs_{false}; // 是否正在调用函数
     int wakeupFd_; // 唤醒文件描述符（Linux专用）
     std::unique_ptr<EventDispatcher> wakeupDispatcherPtr_; // 唤醒事件分发器
