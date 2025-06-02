@@ -23,8 +23,11 @@ target_include_directories(project_headers
         INTERFACE
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/db
-        ${CMAKE_SOURCE_DIR}/mysql
+        ${CMAKE_SOURCE_DIR}/MysqlImpl
+        ${CMAKE_SOURCE_DIR}/third
 )
+
+
 
 
 include(FetchContent)
@@ -49,7 +52,6 @@ find_package(Threads REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
-find_package(unofficial-mysql-connector-cpp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 set(MYSQL_CONNECTOR_CXX_INCLUDE_DIR "/usr/include/mysql-cppconn-8" CACHE PATH "MySQL Connector/C++ 头文件路径")
 set(MYSQL_CONNECTOR_CXX_LIBRARIES "/usr/lib/x86_64-linux-gnu/libmysqlcppconn.so" CACHE FILEPATH "MySQL Connector/C++ 库文件路径")
@@ -85,33 +87,66 @@ add_library(mysqlconnectpool_lib STATIC
         utils/utils.h
         MysqlImpl/MysqlResultImpl.cpp
         MysqlImpl/MysqlResultImpl.h
+        MysqlImpl/MysqlConnector.cpp
+        MysqlImpl/MysqlConnector.h
+        db/DbConnection.h
+        utils/EventLoop.cpp
+        utils/EventLoop.h
+        utils/EventDispatcher.cpp
+        utils/EventDispatcher.h
+        utils/MPSCQueue.h
 )
 
 
 
 target_link_libraries(mysqlconnectpool_lib PUBLIC
-        protobuf::libprotoc
-        protobuf::libprotobuf
-        protobuf::libprotobuf-lite
         ZLIB::ZLIB
-        libmysqlclient.so
+#        libmysqlclient.so
         spdlog::spdlog
         JsonCpp::JsonCpp
         Threads::Threads
         asio::asio
         GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
         unofficial::concurrentqueue::concurrentqueue
-        unofficial::mysql-connector-cpp::connector
         fmt::fmt
+        protobuf::libprotoc
+        protobuf::libprotobuf
+        protobuf::libprotobuf-lite
 )
 
+include_directories(
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/db
+        ${CMAKE_SOURCE_DIR}/MysqlImpl
+        ${CMAKE_SOURCE_DIR}/third
+        ${CMAKE_SOURCE_DIR}/third/mysqlx/devapi
+)
 add_executable(MysqlConnectPool main.cpp
 )
+
+
+
+
 target_link_libraries(MysqlConnectPool
         PRIVATE
-        mysqlconnectpool_lib
+#        mysqlconnectpool_lib
+        ZLIB::ZLIB
+        spdlog::spdlog
+        JsonCpp::JsonCpp
+        Threads::Threads
+        asio::asio
+        GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+        unofficial::concurrentqueue::concurrentqueue
+        fmt::fmt
+        protobuf::libprotoc
+        protobuf::libprotobuf
+        protobuf::libprotobuf-lite
+        ${CMAKE_SOURCE_DIR}/lib/libmysqlcppconnx.so.2
 )
-
+target_include_directories(MysqlConnectPool
+        PRIVATE
+        ${Protobuf_INCLUDE_DIRS}
+)
 # 测试配置
 if(BUILD_TESTS)
     # 定义测试源文件列表

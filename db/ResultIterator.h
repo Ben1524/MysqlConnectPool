@@ -11,6 +11,9 @@
 
 namespace cxk
 {
+/**
+ * @brief
+ */
 class ConstResultIterator : protected Row
 {
   public:
@@ -57,10 +60,10 @@ class ConstResultIterator : protected Row
 
     ConstResultIterator &operator-=(difference_type i)
     {
+
         index_ -= i;
         return *this;
     }
-
     bool operator==(const ConstResultIterator &other) const
     {
         return index_ == other.index_;
@@ -70,6 +73,7 @@ class ConstResultIterator : protected Row
     {
         return index_ != other.index_;
     }
+
 
     bool operator>(const ConstResultIterator &other) const
     {
