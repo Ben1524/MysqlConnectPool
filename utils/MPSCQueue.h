@@ -49,6 +49,7 @@ class MPSCQueue
     }
     bool dequeue(T &output)
     {
+        // 因为只有一个消费者，所以可以使用 relaxed 语义来获取尾部节点，只需要保证原子性即可
         BufferNode *tail = tail_.load(std::memory_order_relaxed);
         BufferNode *next = tail->next_.load(std::memory_order_acquire);
 
