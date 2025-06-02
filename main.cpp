@@ -1,10 +1,31 @@
-#include <iostream>
-#include <mutex>
-#include <fmt/format.h>
 
-// TIP 要<b>Run</b>代码，请按 <shortcut actionId="Run"/> 或点击装订区域中的 <icon src="AllIcons.Actions.Execute"/> 图标。
-int main() {
+#include <codecvt>
+#include <string>
+#include <locale>
+#include <codecvt>
+#include <string>
 
-    std::string s = fmt::format("{0} {1}, {0}!", "'Hello'", "world");
-    std::cout<<s<<std::endl;
+const char* convertChar16ToChar(const char16_t* char16Str) {
+    if (!char16Str) return nullptr;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+    static std::string result;
+    try {
+        result = converter.to_bytes(char16Str);
+    } catch (const std::range_error&) {
+        // 转换失败时返回空字符串
+        result.clear();
+    }
+    return result.c_str();
+}
+
+int main()
+{
+    const char16_t* char16Str = u"Hello, World!";
+    const char* result = convertChar16ToChar(char16Str);
+    if (result) {
+        printf("Converted string: %s\n", result);
+    } else {
+        printf("Conversion failed.\n");
+    }
+    return 0;
 }
