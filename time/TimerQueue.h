@@ -7,7 +7,7 @@
 
 #ifndef MYSQLCONNECTPOOL_TIMERQUEUE_H
 #define MYSQLCONNECTPOOL_TIMERQUEUE_H
-
+#include "Timer.h"
 #include <memory>
 #include <ctime>
 #include <atomic>
@@ -31,7 +31,7 @@ struct TimerPtrComparer
         return *x > *y; // 利用Timer的operator>实现倒序排序
     }
 };
-class TimerQueue
+class TimerQueue:public NonCopyable
 {
 
 };

@@ -40,6 +40,53 @@ enum
  */
 class EventLoop : public NonCopyable
 {
+
+
+public:
+    EventLoop();
+    ~EventLoop();
+
+    /**
+     * @brief 运行事件循环。此方法将阻塞，直到事件循环退出。
+     */
+    void loop();
+
+    /**
+     * @brief 让事件循环退出。
+     */
+    void quit();
+
+    /**
+     * @brief 检查当前线程是否为事件循环线程。
+     * @return true 如果是事件循环线程
+     * @return false 如果不是事件循环线程
+     */
+    bool isInLoopThread() const;
+
+    /**
+     * @brief 获取当前事件循环所属的线程ID。
+     * @return std::thread::id 线程ID
+     */
+    std::thread::id threadId() const;
+
+    /**
+     * @brief 获取当前事件循环的Poller实例。
+     * @return Poller* 指向Poller实例的指针
+     */
+    Poller *poller() const;
+
+    /**
+     * @brief 获取当前事件循环的TimerQueue实例。
+     * @return TimerQueue* 指向TimerQueue实例的指针
+     */
+    TimerQueue *timerQueue() const;
+
+    /**
+     * @brief 在事件循环中执行一个函数。
+     * @param cb 待执行的函数
+     */
+    void runInLoop(const Func &cb);
+    void runInLoop(Func &&cb);
 private:
     void abortNotInLoopThread(); // 不是在指定的事件循环线程中终止
     void wakeup(); // 唤醒事件循环线程
