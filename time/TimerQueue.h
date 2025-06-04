@@ -13,6 +13,7 @@
 #include <atomic>
 #include <unordered_set>
 #include <functional>
+#include <queue>
 namespace cxk
 {
 class EventLoop;
@@ -33,7 +34,37 @@ struct TimerPtrComparer
 };
 class TimerQueue:public NonCopyable
 {
+public:
+    explicit TimerQueue(EventLoop*loop);
+    ~TimerQueue();
+    TimerId addTimer(const TimerCallback &cb,
+                     const TimePoint &when,
+                     const TimeInterval &interval);
+    TimerId addTimer(TimerCallback &&cb,
+                     const TimePoint &when,
+                     const TimeInterval &interval);
+    void addTimerInLoop(const TimerPtr &timer);
+    void invalidateTimer(TimerId id);
+    void reset();
 
+protected:
+    EventLoop *loop_;
+#ifdef __linux__
+    int timerfd_;
+    std::shared_ptr<EventDispatcher> timerfdEventDispatcherPtr_;
+    void handleRead();
+#endif
+    std::priority_queue<TimerPtr, std::vector<TimerPtr>, TimerPtrComparer>
+            timers_;
+
+    bool callingExpiredTimers_;
+    bool insert(const TimerPtr &timePtr);
+    std::vector<TimerPtr> getExpired();
+    void reset(const std::vector<TimerPtr> &expired, const TimePoint &now);
+    std::vector<TimerPtr> getExpired(const TimePoint &now);
+
+private:
+    std::unordered_set<uint64_t> timerIdSet_;
 };
 
 }

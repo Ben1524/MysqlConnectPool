@@ -90,15 +90,17 @@ add_library(mysqlconnectpool_lib STATIC
         MysqlImpl/MysqlConnector.cpp
         MysqlImpl/MysqlConnector.h
         db/DbConnection.h
-        utils/EventLoop.cpp
-        utils/EventLoop.h
-        utils/EventDispatcher.cpp
-        utils/EventDispatcher.h
+        event/EventLoop.cpp
+        event/EventLoop.h
+        event/EventDispatcher.cpp
+        event/EventDispatcher.h
         utils/MPSCQueue.h
         time/TimerQueue.cpp
         time/TimerQueue.h
         time/Timer.cpp
         time/Timer.h
+        poll/EpollPoller.cpp
+        poll/EpollPoller.h
 )
 
 

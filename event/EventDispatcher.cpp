@@ -177,5 +177,21 @@ void cxk::EventDispatcher::updateEvents(int events)
     update();
 }
 
+int cxk::EventDispatcher::setRealEvents(int revt)
+{
+    realEvents_=revt;
+    return revt;
+}
+
+int cxk::EventDispatcher::getState() const
+{
+    return state_;
+}
+int cxk::EventDispatcher::setState(int index)
+{
+    state_ = index;
+    return state_;
+}
+
 
 

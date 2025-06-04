@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include <spdlog/spdlog.h>
 #include "EventLoop.h"
+#include "poll/EpollPoller.h"
+#include "time/TimerQueue.h"
+#include "EventDispatcher.h"
+
 using namespace cxk;
 void EventLoop::abortNotInLoopThread()
 {
@@ -45,4 +49,24 @@ void EventLoop::wakeupRead()
 void EventLoop::doRunInLoopFuncs()
 {
 
+}
+
+EventLoop::EventLoop():
+        looping_(false),
+        threadId_(std::this_thread::get_id()),
+        quit_(false),
+        poller_(EpollPoller::newPoller(this)),
+        currentActiveDispatcher_(nullptr),
+        eventHandling_(false),
+        timerQueue_(new TimerQueue(this))
+{
+
+}
+
+void EventLoop::assertInLoopThread()
+{
+    if (!isInLoopThread())
+    {
+        abortNotInLoopThread();
+    }
 }

@@ -20,7 +20,7 @@ namespace cxk
 template <typename T>
 class MPSCQueue
 {
-
+public:
     MPSCQueue()
             : head_(new BufferNode), tail_(head_.load(std::memory_order_relaxed))
     {

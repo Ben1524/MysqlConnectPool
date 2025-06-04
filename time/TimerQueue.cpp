@@ -6,3 +6,8 @@
 //
 
 #include "TimerQueue.h"
+
+cxk::TimerQueue::TimerQueue(cxk::EventLoop *loop)
+{
+
+}

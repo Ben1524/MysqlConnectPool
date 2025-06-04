@@ -8,7 +8,7 @@
 
 #ifndef MYSQLCONNECTPOOL_EVENTDISPATCHER_H
 #define MYSQLCONNECTPOOL_EVENTDISPATCHER_H
-#include <NonCopyable.h>
+#include "NonCopyable.h"
 #include <functional>
 #include <memory>
 
@@ -109,6 +109,11 @@ public:
      * @return int 事件类型掩码
      */
     int getRealEvents() const;
+    int setRealEvents(int revt);
+
+
+    int getState()const;
+    int setState(int index);
 
     /**
      * @brief 检查是否没有注册任何事件
@@ -203,7 +208,7 @@ private:
     const int fd_; ///< 监听的文件描述符
     int events_; ///< 当前注册的事件类型（如可读、可写）
     int realEvents_; ///< 实际发生的事件类型
-    int index_; ///< 在Poller中的索引位置
+    int state_; ///< 在Poller中状态
     bool addedToLoop_{false}; ///< 是否已添加到EventLoop中
     EventCallback readCallback_;
     EventCallback writeCallback_;

@@ -7,8 +7,8 @@
 
 #ifndef MYSQLCONNECTPOOL_EVENTLOOP_H
 #define MYSQLCONNECTPOOL_EVENTLOOP_H
-#include "MPSCQueue.h"
-#include <NonCopyable.h>
+#include "utils/MPSCQueue.h"
+#include "NonCopyable.h"
 #include <thread>
 #include <memory>
 #include <vector>
@@ -19,10 +19,12 @@
 #include <limits>
 #include <atomic>
 
+
 namespace cxk
 {
+
 class EventDispatcher;
-class Poller; // 前向声明Poller类
+class EpollPoller; // 前向声明Poller类
 class TimerQueue;
 using EventDispatcherList = std::vector<EventDispatcher *>;
 using Func = std::function<void()>;
@@ -40,11 +42,15 @@ enum
  */
 class EventLoop : public NonCopyable
 {
-
-
 public:
-    EventLoop();
+    explicit EventLoop();
     ~EventLoop();
+
+    /**
+     * @brief 在事件循环线程中断言当前线程是否为事件循环线程。
+     */
+    void assertInLoopThread();
+
 
     /**
      * @brief 运行事件循环。此方法将阻塞，直到事件循环退出。
@@ -71,9 +77,9 @@ public:
 
     /**
      * @brief 获取当前事件循环的Poller实例。
-     * @return Poller* 指向Poller实例的指针
+     * @return EpollPoller* 指向Poller实例的指针
      */
-    Poller *poller() const;
+    EpollPoller *poller() const;
 
     /**
      * @brief 获取当前事件循环的TimerQueue实例。
@@ -94,7 +100,7 @@ private:
     std::atomic<bool> looping_; // 事件循环是否正在运行
     std::thread::id threadId_; // 所属线程的ID
     std::atomic<bool> quit_; // 退出标志
-    std::unique_ptr<Poller> poller_; // 事件轮询器 ，linux使用epoll实现
+    std::unique_ptr<EpollPoller> poller_; // 事件轮询器 ，linux使用epoll实现
 
     EventDispatcherList activeDispatchers_; // 触发的事件分发器列表
     EventDispatcher *currentActiveDispatcher_; // 当前活跃的事件分发器
