@@ -16,7 +16,7 @@ void cxk::EventDispatcher::disableAll()
 }
 
 cxk::EventDispatcher::EventDispatcher(cxk::EventLoop *loop, int fd)
-: loop_(loop), fd_(fd), events_(0), realEvents_(0), index_(-1), tied_(false)
+: loop_(loop), fd_(fd), events_(0), realEvents_(0), state_(-1), tied_(false)
 {
 
 }
