@@ -31,7 +31,6 @@ public:
     friend class EventLoop;
     friend class EpollPoller;
     friend class KQueue;
-    friend class PollPoller;
 
     using EventCallback = std::function<void()>; ///< 事件回调函数类型
 
@@ -178,12 +177,7 @@ public:
      */
     bool isReading() const;
 
-    /**
-     * @brief 更新事件分发器状态到Poller中
-     *
-     * 当注册的事件发生变化时，需要调用此方法通知Poller
-     */
-    void update();
+
 
     /**
      * @brief 直接更新事件类型
@@ -206,6 +200,16 @@ public:
     static const int getKWriteEvent(); ///< 获取可写事件类型常量
 
 private:
+    /**
+    * @brief 更新事件分发器状态到Poller中
+    *
+    * 当注册的事件发生变化时，需要调用此方法通知Poller
+    */
+    void update();
+    void handleEvent();
+    void handleEventSafely();
+
+
     EventLoop* loop_; ///< 所属的EventLoop
     const int fd_; ///< 监听的文件描述符
     int events_; ///< 当前注册的事件类型（如可读、可写）

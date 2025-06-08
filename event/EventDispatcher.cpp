@@ -8,6 +8,7 @@
 #include <cassert>
 #include "EventDispatcher.h"
 #include "EventLoop.h"
+#include <poll.h>
 
 void cxk::EventDispatcher::disableAll()
 {
@@ -105,6 +106,66 @@ const int cxk::EventDispatcher::getKNoneEvent()
 void cxk::EventDispatcher::update()
 {
     loop_->updateChannel(this);
+}
+
+void cxk::EventDispatcher::handleEvent()
+{
+    if (events_ == getKNoneEvent())
+    {
+        return; // 没有事件需要处理
+    }
+    if (tied_)
+    {
+        std::shared_ptr<void> guard = tie_.lock();
+        if (guard)
+        {
+            handleEventSafely();
+        }
+    }
+    else
+    {
+        handleEventSafely();
+    }
+}
+
+void cxk::EventDispatcher::handleEventSafely()
+{
+    if (eventCallback_)
+    {
+        eventCallback_();
+        return;
+    }
+
+    if ((realEvents_ & POLLHUP) && !(realEvents_ & POLLIN)) // 处理挂起事件
+    {
+        if (closeCallback_)
+        {
+            closeCallback_();
+        }
+        return;
+    }
+    if (realEvents_ & (POLLNVAL | POLLERR)) // 处理无效事件或错误事件
+    {
+        if (errorCallback_)
+        {
+            errorCallback_();
+        }
+        return;
+    }
+    if (realEvents_ & (POLLIN | POLLPRI | POLLRDHUP)) // 处理读事件、紧急读事件、读半关闭事件
+    {
+        if (readCallback_)
+        {
+            readCallback_();
+        }
+    }
+    if (realEvents_ & POLLOUT) // 处理写事件
+    {
+        if (writeCallback_)
+        {
+            writeCallback_();
+        }
+    }
 }
 
 void cxk::EventDispatcher::remove()

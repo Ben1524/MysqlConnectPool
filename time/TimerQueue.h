@@ -60,6 +60,7 @@ struct TimerPtrComparer
 class TimerQueue:public NonCopyable
 {
 public:
+    friend class EventLoop;
     /**
      * @brief 构造函数，创建一个TimerQueue实例
      * @param loop 关联的EventLoop对象，定时器事件将在该EventLoop中执行
@@ -133,6 +134,7 @@ protected:
     std::vector<TimerPtr> getExpired();
     void reset(const std::vector<TimerPtr> &expired, const TimePoint &now);
     std::vector<TimerPtr> getExpired(const TimePoint &now);
+    void reset();
 
 private:
     /**

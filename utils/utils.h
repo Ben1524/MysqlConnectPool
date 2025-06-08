@@ -12,8 +12,10 @@ namespace utils
 {
     std::string hexToBinaryString(const char *ptr, size_t length);
     std::vector<char> hexToBinaryVector(const char *ptr, size_t length);
+    std::vector<std::string> splitString(const std::string &s,
+                                            const std::string &delimiter,
+                                            bool acceptEmptyString = false);
 }
-
 
 
 #endif //UTILS_H

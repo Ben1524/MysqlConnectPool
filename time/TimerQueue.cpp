@@ -180,6 +180,13 @@ std::vector<TimerPtr> TimerQueue::getExpired(const TimePoint &now)
     return expired; // 返回所有已到期的定时器
 }
 
+void TimerQueue::reset()
+{
+    loop_->runInLoop([this]
+        {
+        });
+}
+
 void TimerQueue::reset(const std::vector<TimerPtr> &expired, const TimePoint &now)
 {
     loop_->assertInLoopThread(); // 确保在EventLoop的线程中调用

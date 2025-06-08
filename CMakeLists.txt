@@ -53,6 +53,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(absl CONFIG REQUIRED)
 set(MYSQL_CONNECTOR_CXX_INCLUDE_DIR "/usr/include/mysql-cppconn-8" CACHE PATH "MySQL Connector/C++ 头文件路径")
 set(MYSQL_CONNECTOR_CXX_LIBRARIES "/usr/lib/x86_64-linux-gnu/libmysqlcppconn.so" CACHE FILEPATH "MySQL Connector/C++ 库文件路径")
 include_directories(${MYSQL_CONNECTOR_CXX_INCLUDE_DIR})
@@ -101,6 +102,9 @@ add_library(mysqlconnectpool_lib STATIC
         time/Timer.h
         poll/EpollPoller.cpp
         poll/EpollPoller.h
+        utils/ScopeExit.h
+        time/DateTime.cpp
+        time/DateTime.h
 )
 
 
@@ -148,6 +152,10 @@ target_link_libraries(MysqlConnectPool
         protobuf::libprotobuf
         protobuf::libprotobuf-lite
         ${CMAKE_SOURCE_DIR}/lib/libmysqlcppconnx.so.2
+        absl::any
+        absl::log
+        absl::base
+        absl::bits
 )
 target_include_directories(MysqlConnectPool
         PRIVATE

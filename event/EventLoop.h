@@ -87,18 +87,39 @@ public:
      */
     TimerQueue *timerQueue() const;
 
+    void resetTimerQueue();
     /**
-     * @brief 在事件循环中执行一个函数。
-     * @param cb 待执行的函数
+     * @brief 在事件循环线程中执行一个函数。
+     * 如果当前线程是事件循环线程，则直接执行函数；否则，将函数排入事件循环队列。
+     * @tparam Functor 函数对象类型
+     * @param f 要执行的函数
      */
-    void runInLoop(const Func &cb);
-    void runInLoop(Func &&cb);
+    template <typename Functor>
+    inline void runInLoop(Functor &&f)
+    {
+        if (isInLoopThread())
+        {
+            f();
+        }
+        else
+        {
+            queueInLoop(std::forward<Functor>(f));
+        }
+    }
+
+    /**
+     * @brief 在事件循环线程中允许一个函数
+     * @note 与 runInLoop() 方法的区别在于，queueInLoop() 方法会在方法退出后执行函数，无论当前线程是否为事件循环线程。
+     */
+    void queueInLoop(const Func &f);
+    void queueInLoop(Func &&f);
+
 private:
     void abortNotInLoopThread(); // 不是在指定的事件循环线程中终止
     void wakeup(); // 唤醒事件循环线程
     void wakeupRead(); // 唤醒读事件
     std::atomic<bool> looping_; // 事件循环是否正在运行
-    std::thread::id threadId_; // 所属线程的ID
+    thread_local std::thread::id threadId_; // 所属线程的ID
     std::atomic<bool> quit_; // 退出标志
     std::unique_ptr<EpollPoller> poller_; // 事件轮询器 ，linux使用epoll实现
 
@@ -114,7 +135,7 @@ private:
 
     void doRunInLoopFuncs(); // 执行事件循环中的待处理函数
     size_t index_{std::numeric_limits<size_t>::max()}; // 事件循环索引（默认最大值）
-    EventLoop **threadLocalLoopPtr_; // 线程局部存储的事件循环指针
+    EventLoop **threadLocalLoopPtr_; // 线程局部存储的事件循环指针，限制当前线程只有一个事件循环
 };
 }
 
