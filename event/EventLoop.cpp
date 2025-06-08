@@ -5,13 +5,17 @@
 */
 //
 #include <unistd.h>
-#include <spdlog/spdlog.h>
 #include "EventLoop.h"
 #include "poll/EpollPoller.h"
 #include "time/TimerQueue.h"
 #include "EventDispatcher.h"
 #include <sys/eventfd.h>
 #include "utils/ScopeExit.h"
+#include <absl/log/log.h>
+#include <absl/log/absl_log.h>
+#include <spdlog/spdlog.h>
+
+#include "time/DateTime.h"
 
 using namespace cxk;
 
@@ -21,7 +25,7 @@ static int createEventfd()
     int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC); // 创建一个事件文件描述符，EFD_NONBLOCK表示非阻塞模式，EFD_CLOEXEC表示在fork时不会继承该文件描述符
     if (evtfd < 0)
     {
-        spdlog::error("Failed in eventfd: {}", strerror(errno));
+        ABSL_LOG(FATAL) << "Failed to create eventfd: " << strerror(errno);
         abort();
     }
     return evtfd;
@@ -43,7 +47,7 @@ EventLoop::EventLoop():
 {
     if (t_loopInThisThread)
     {
-        spdlog::error("There is already an EventLoop in this thread, you cannot create another one");
+        ABSL_LOG(FATAL) << "There is already an EventLoop in this thread";
         exit(-1);
     }
     t_loopInThisThread = this; // 设置当前线程的事件循环指针为this，一个事件循环对应一个线程
@@ -59,7 +63,7 @@ EventLoop::EventLoop():
 
 void EventLoop::abortNotInLoopThread()
 {
-    spdlog::error("EventLoop::abortNotInLoopThread");
+    ABSL_LOG(FATAL) << "It is forbidden to run loop on threads other than event-loop thread";
     exit(1);
 }
 
@@ -247,3 +251,82 @@ void EventLoop::queueInLoop(Func &&cb)
     }
 }
 
+TimerId EventLoop::runAt(const DateTime &time, const Func &cb)
+{
+    auto microSeconds =
+        time.microSecondsSinceEpoch() - DateTime::now().microSecondsSinceEpoch();
+    std::chrono::steady_clock::time_point tp =
+        std::chrono::steady_clock::now() +
+        std::chrono::microseconds(microSeconds);
+    return timerQueue_->addTimer(cb, tp, std::chrono::microseconds(0));
+}
+
+
+TimerId EventLoop::runAfter(double delay, const Func &cb)
+{
+    return runAt(DateTime::date().after(delay), cb);
+}
+TimerId EventLoop::runAfter(double delay, Func &&cb)
+{
+    return runAt(DateTime::date().after(delay), std::move(cb));
+}
+TimerId EventLoop::runEvery(double interval, const Func &cb)
+{
+    std::chrono::microseconds dur(
+        static_cast<std::chrono::microseconds::rep>(interval * 1000000));
+    auto tp = std::chrono::steady_clock::now() + dur;
+    return timerQueue_->addTimer(cb, tp, dur);
+}
+TimerId EventLoop::runEvery(double interval, Func &&cb)
+{
+    std::chrono::microseconds dur(
+        static_cast<std::chrono::microseconds::rep>(interval * 1000000));
+    auto tp = std::chrono::steady_clock::now() + dur;
+    return timerQueue_->addTimer(std::move(cb), tp, dur);
+}
+
+bool EventLoop::isRunning() const
+{
+    return looping_.load(std::memory_order_acquire) &&
+           (!quit_.load(std::memory_order_acquire));
+}
+
+void EventLoop::invalidateTimer(TimerId id)
+{
+    if (isRunning() && timerQueue_)
+        timerQueue_->invalidateTimer(id);
+}
+
+void EventLoop::moveToCurrentThread()
+{
+    if (isRunning())
+    {
+        ABSL_LOG(FATAL) << "EventLoop cannot be moved when running";
+        exit(-1);
+    }
+    if (isInLoopThread())
+    {
+        ABSL_LOG(WARNING) << "This EventLoop is already in the current thread";
+        return;
+    }
+    if (t_loopInThisThread)
+    {
+        ABSL_LOG(FATAL) << "There is already an EventLoop in this thread, you cannot "
+                           "move another in";
+        exit(-1);
+    }
+    *threadLocalLoopPtr_ = nullptr; // 清除线程本地指针
+    t_loopInThisThread = this; // 设置当前线程的事件循环指针为this
+    threadLocalLoopPtr_ = &t_loopInThisThread; // 更新线程本地指针
+    threadId_ = std::this_thread::get_id(); // 更新线程ID
+}
+
+void EventLoop::runOnQuit(Func &&cb)
+{
+    funcsOnQuit_.enqueue(std::move(cb));
+}
+
+void EventLoop::runOnQuit(const Func &cb)
+{
+    funcsOnQuit_.enqueue(cb);
+}

@@ -19,6 +19,8 @@
 #include <limits>
 #include <atomic>
 
+#include "time/DateTime.h"
+
 
 namespace cxk
 {
@@ -113,6 +115,23 @@ public:
      */
     void queueInLoop(const Func &f);
     void queueInLoop(Func &&f);
+
+    /**
+     *
+     * @param time 下次运行的时间点
+     * @param cb  回调函数
+     * @return  TimerId 定时器ID
+     * @brief 在指定的时间点运行一个函数，借助 TimerQueue 实现。
+     */
+    TimerId runAt(const DateTime& time, const Func& cb);
+    TimerId runAfter(double delay, const Func& cb);
+    TimerId runAfter(double delay, Func&& cb);
+    TimerId runEvery(double interval, const Func& cb);
+    TimerId runEvery(double interval, Func&& cb);
+    bool isRunning() const;
+    void invalidateTimer(TimerId id);
+    void runOnQuit(Func&& cb);
+    void runOnQuit(const Func& cb);
 
 private:
     void abortNotInLoopThread(); // 不是在指定的事件循环线程中终止
