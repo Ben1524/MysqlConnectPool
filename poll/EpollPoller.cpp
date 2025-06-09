@@ -97,9 +97,6 @@ void EpollPoller::fillActiveDispatchers(int numEvents, EventDispatcherList *acti
     {
         EventDispatcher *dispatcher=static_cast<EventDispatcher*>(events_[i].data.ptr);
         int fd = dispatcher->getFd();
-        auto it = dispatchers_.find(fd); // 返回值是
-        assert(it != dispatchers_.end());
-        assert(it->second==dispatcher);
         dispatcher->setRealEvents(events_[i].events);
         activeDispathcer->push_back(dispatcher);
     }

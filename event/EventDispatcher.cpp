@@ -105,7 +105,7 @@ const int cxk::EventDispatcher::getKNoneEvent()
 
 void cxk::EventDispatcher::update()
 {
-    loop_->updateChannel(this);
+    loop_->updateEventDispatcher(this);
 }
 
 void cxk::EventDispatcher::handleEvent()
@@ -172,7 +172,7 @@ void cxk::EventDispatcher::remove()
 {
     assert(events_ == getKNoneEvent());
     addedToLoop_ = false;
-    loop_->removeChannel(this);
+    loop_->removeEventDispatcher(this);
 }
 
 cxk::EventLoop *cxk::EventDispatcher::getLoop() const
@@ -183,7 +183,7 @@ cxk::EventLoop *cxk::EventDispatcher::getLoop() const
 void cxk::EventDispatcher::tie(const std::shared_ptr<void> &obj)
 {
     tied_ = true;
-    tieObj_ = obj;
+    tie_ = obj;
 }
 
 void cxk::EventDispatcher::enableReading()

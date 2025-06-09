@@ -130,15 +130,19 @@ public:
     TimerId runEvery(double interval, Func&& cb);
     bool isRunning() const;
     void invalidateTimer(TimerId id);
+    void moveToCurrentThread();
     void runOnQuit(Func&& cb);
     void runOnQuit(const Func& cb);
+    void updateEventDispatcher(EventDispatcher* dispatcher);
+    void registerEventDispatcher(EventDispatcher* dispatcher);
+    void removeEventDispatcher(EventDispatcher* dispatcher);
 
 private:
     void abortNotInLoopThread(); // 不是在指定的事件循环线程中终止
     void wakeup(); // 唤醒事件循环线程
     void wakeupRead(); // 唤醒读事件
     std::atomic<bool> looping_; // 事件循环是否正在运行
-    thread_local std::thread::id threadId_; // 所属线程的ID
+    std::thread::id threadId_; // 所属线程的ID
     std::atomic<bool> quit_; // 退出标志
     std::unique_ptr<EpollPoller> poller_; // 事件轮询器 ，linux使用epoll实现
 

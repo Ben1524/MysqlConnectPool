@@ -77,7 +77,6 @@ add_library(mysqlconnectpool_lib STATIC
         db/ArrayParser.h
         db/Exception.h
         db/Exception.cpp
-        test/test_field.cpp
         db/Row.cpp
         db/Row.h
         db/RowIterator.h
@@ -139,7 +138,7 @@ add_executable(MysqlConnectPool main.cpp
 
 target_link_libraries(MysqlConnectPool
         PRIVATE
-#        mysqlconnectpool_lib
+        mysqlconnectpool_lib
         ZLIB::ZLIB
         spdlog::spdlog
         JsonCpp::JsonCpp
@@ -162,10 +161,11 @@ target_include_directories(MysqlConnectPool
         ${Protobuf_INCLUDE_DIRS}
 )
 # 测试配置
-if(BUILD_TESTS)
+if(TEST)
     # 定义测试源文件列表
     set(TEST_SOURCES
-
+            test/test_field.cpp
+            test/test_eventloop.cpp
     )
 
     # 为每个测试文件创建单独的测试目标
@@ -175,7 +175,6 @@ if(BUILD_TESTS)
 
         # 创建测试可执行文件
         add_executable(${test_name} ${test_source}
-                concurrence/switcher.h
         )
 
         # 链接必要的库

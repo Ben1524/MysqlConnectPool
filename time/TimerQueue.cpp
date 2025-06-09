@@ -182,8 +182,18 @@ std::vector<TimerPtr> TimerQueue::getExpired(const TimePoint &now)
 
 void TimerQueue::reset()
 {
-    loop_->runInLoop([this]
+    loop_->runInLoop([this]{
+        timerfdEventDispatcherPtr_->disableAll();
+        timerfdEventDispatcherPtr_->remove(); // 从事件循环中移除
+        close(timerfd_);
+        timerfd_ = createTimerfd(); // 重新创建timerfd
+        timerfdEventDispatcherPtr_ = std::make_shared<EventDispatcher>(loop_, timerfd_);
+        timerfdEventDispatcherPtr_->setReadCallback([this]() { this->handleRead(); }); // 设置读取回调
+        timerfdEventDispatcherPtr_->enableReading(); // 启用读取事件
+        if (!timers_.empty()) // 如果还有未到期的定时器
         {
+            resetTimerfd(timerfd_, timers_.top()->when()); // 重置timerfd以通知事件循环
+        }
         });
 }
 

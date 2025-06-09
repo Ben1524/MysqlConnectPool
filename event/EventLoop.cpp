@@ -58,7 +58,18 @@ EventLoop::EventLoop():
     wakeupDispatcherPtr_->enableReading();
 }
 
-
+EventLoop::~EventLoop()
+{
+    struct timespec delay = {0, 1000000}; /* 1 msec */
+    quit();
+    // Spin waiting for the loop to exit because
+    while (looping_.load(std::memory_order_acquire))
+    {
+        // 等待事件循环退出
+        nanosleep(&delay, nullptr);
+    }
+    close(wakeupFd_);
+}
 
 
 void EventLoop::abortNotInLoopThread()
@@ -329,4 +340,33 @@ void EventLoop::runOnQuit(Func &&cb)
 void EventLoop::runOnQuit(const Func &cb)
 {
     funcsOnQuit_.enqueue(cb);
+}
+
+void EventLoop::updateEventDispatcher(EventDispatcher *dispatcher)
+{
+    assert(dispatcher->getLoop() == this);
+    assertInLoopThread();
+    if (dispatcher)
+    {
+        poller_->registerEventDispatcher(dispatcher);
+    }
+}
+void EventLoop::registerEventDispatcher(EventDispatcher *dispatcher)
+{
+    assert(dispatcher->getLoop() == this);
+    assertInLoopThread();
+    if (dispatcher)
+    {
+        poller_->registerEventDispatcher(dispatcher);
+    }
+}
+
+void EventLoop::removeEventDispatcher(EventDispatcher *dispatcher)
+{
+    assert(dispatcher->getLoop() == this);
+    assertInLoopThread();
+    if (dispatcher)
+    {
+        poller_->removeEventDispatcher(dispatcher);
+    }
 }

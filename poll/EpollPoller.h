@@ -39,8 +39,6 @@ private:
     bool updateEventDispatcher(int operation, EventDispatcher *channel);
     void fillActiveDispatchers(int numEvents,
                             EventDispatcherList *activeChannels) const;
-    using EventDispatcherMap = std::map<int, EventDispatcher *>;
-    EventDispatcherMap dispatchers_; ///< 管理所有的事件分发器
     EventLoop *loop_; ///< 事件循环对象指针
 
 };
