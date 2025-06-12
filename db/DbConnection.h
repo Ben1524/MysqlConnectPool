@@ -114,21 +114,56 @@ class DbConnection : public NonCopyable
 
     virtual void init(){};
 
+    /**
+     * @brief 设置操作成功回调函数
+     *
+     * 当数据库操作成功完成时，将调用此回调函数
+     *
+     * @param cb 成功回调函数，类型为DbConnectionCallback
+     */
     void setOkCallback(const DbConnectionCallback &cb)
     {
         okCallback_ = cb;
     }
 
+
+    /**
+     * @brief 设置关闭连接回调函数
+     *
+     * 当数据库连接关闭时，将调用此回调函数
+     *
+     * @param cb 关闭回调函数，类型为DbConnectionCallback
+     */
     void setCloseCallback(const DbConnectionCallback &cb)
     {
         closeCallback_ = cb;
     }
 
+    /**
+     * @brief 设置空闲状态回调函数
+     *
+     * 当数据库连接处于空闲状态时，将调用此回调函数
+     *
+     * @param cb 空闲状态回调函数，类型为std::function<void()>
+     */
     void setIdleCallback(const std::function<void()> &cb)
     {
         idleCb_ = cb;
     }
 
+    /**
+     * @brief 执行SQL语句
+     *
+     * 异步执行SQL语句并通过回调返回结果
+     *
+     * @param sql 要执行的SQL语句
+     * @param paraNum 参数数量
+     * @param parameters SQL参数值数组
+     * @param length 参数长度数组
+     * @param format 参数格式数组
+     * @param rcb 结果回调函数，用于处理查询结果
+     * @param exceptCallback 异常回调函数，用于处理执行过程中发生的异常
+     */
     virtual void execSql(
         std::string_view &&sql,
         size_t paraNum,
@@ -137,8 +172,17 @@ class DbConnection : public NonCopyable
         std::vector<int> &&format,
         ResultCallback &&rcb,
         std::function<void(const std::exception_ptr &)> &&exceptCallback) = 0;
+
+    /**
+     * @brief 批量执行SQL命令
+     *
+     * 异步批量执行一系列SQL命令
+     *
+     * @param sqlCommands 要执行的SQL命令队列
+     */
     virtual void batchSql(
         std::deque<std::shared_ptr<SqlCmd>> &&sqlCommands) = 0;
+
 
     virtual ~DbConnection()
     {

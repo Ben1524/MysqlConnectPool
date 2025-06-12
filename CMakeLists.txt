@@ -107,6 +107,8 @@ add_library(mysqlconnectpool_lib SHARED
         time/DateTime.h
         db/DbTypes.h
         db/DbConnection.cpp
+        event/EventLoopThread.cpp
+        event/EventLoopThread.h
 )
 
 
