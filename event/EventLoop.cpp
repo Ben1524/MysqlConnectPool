@@ -110,6 +110,31 @@ void EventLoop::doRunInLoopFuncs()
 {
     callingFuncs_ = true;
     {
+        // Assure the flag is cleared even if func throws
+        auto callingFlagCleaner =
+            utils::makeScopeExit([this]() { callingFuncs_ = false; });
+        // the destructor for the Func may itself insert a new entry into the
+        // queue
+        // TODO: The following is exception-unsafe. If one  of the funcs throws,
+        // the remaining ones will not get run. The simplest fix is to catch any
+        // exceptions and rethrow them later, but somehow that seems fishy...
+        while (!funcs_.empty())
+        {
+            Func func;
+            while (funcs_.dequeue(func))
+            {
+                if (!func) // 如果回调函数为空，直接返回
+                {
+                    ABSL_LOG(WARNING) << "EventLoop::doRunInLoopFuncs: empty function, skipping";
+                    continue;
+                }
+                func();
+            }
+        }
+    }
+    return ;
+    callingFuncs_ = true;
+    {
         // 确保标志在函数执行完毕后被清除，无论是否发生异常
         auto callingFlagCleaner =
             utils::makeScopeExit([this]() { callingFuncs_ = false; });
@@ -141,6 +166,7 @@ void EventLoop::doRunInLoopFuncs()
         // 如果有异常，重新抛出第一个捕获的异常
         if (firstException)
         {
+            ABSL_LOG(ERROR) << "Rethrowing exception from EventLoop::doRunInLoopFuncs";
             std::rethrow_exception(firstException);
         }
     }
@@ -161,50 +187,117 @@ void EventLoop::assertInLoopThread()
 
 void EventLoop::loop()
 {
-    assert(!looping_.load(std::memory_order_acquire)); // 确保没有重复调用loop
+    assert(!looping_);
     assertInLoopThread();
-    looping_.store(true, std::memory_order_release); // release语确保
+    looping_.store(true, std::memory_order_release);
     quit_.store(false, std::memory_order_release);
 
     std::exception_ptr loopException;
-
     try
-    {
+    {  // Scope where the loop flag is set
+
         auto loopFlagCleaner = utils::makeScopeExit(
-                    [this]() { looping_.store(false, std::memory_order_release); });
+            [this]() { looping_.store(false, std::memory_order_release); });
         while (!quit_.load(std::memory_order_acquire))
         {
-            activeDispatchers_.clear(); // 清空活跃的事件分发器列表
-            poller_->poll(kPollTimeMs, &activeDispatchers_); // 轮询事件
-            eventHandling_=true;
-            for (auto& dispatcher : activeDispatchers_)
+            activeDispatchers_.clear();
+#ifdef __linux__
+            poller_->poll(kPollTimeMs, &activeDispatchers_);
+#else
+            poller_->poll(static_cast<int>(timerQueue_->getTimeout()),
+                          &activeChannels_);
+            timerQueue_->processTimers();
+#endif
+            // TODO sort channel by priority
+            // std::cout<<"after ->poll()"<<std::endl;
+            eventHandling_ = true;
+            for (auto it = activeDispatchers_.begin(); it != activeDispatchers_.end();
+                 ++it)
             {
-                currentActiveDispatcher_ = dispatcher; // 设置当前活跃的事件分发器
-                currentActiveDispatcher_->handleEvent(); // 处理事件
+                currentActiveDispatcher_ = *it;
+                currentActiveDispatcher_->handleEvent();
             }
-            currentActiveDispatcher_ = nullptr; // 重置当前活跃的事件分发器
-            eventHandling_ = false; // 事件处理结束
-            doRunInLoopFuncs(); // 执行在事件循环中注册的函数
+            currentActiveDispatcher_ = nullptr;
+            eventHandling_ = false;
+            // std::cout << "looping" << endl;
+            doRunInLoopFuncs();
         }
-    }catch (std::exception &e)
+        // loopFlagCleaner clears the loop flag here
+    }
+    catch (std::exception &e)
     {
-        spdlog::error("Exception in EventLoop::loop: {}", e.what());
+        ABSL_LOG(WARNING) << "Exception thrown from event loop, rethrowing after "
+                    "running functions on quit: "
+                 << e.what();
         loopException = std::current_exception();
     }
 
-    // 上述循环出现异常被退出
+    // Run the quit functions even if exceptions were thrown
+    // TODO: if more exceptions are thrown in the quit functions, some are left
+    // un-run. Can this be made exception safe?
     Func f;
-    while (funcsOnQuit_.dequeue(f)) // 执行退出时注册的函数
+    while (funcsOnQuit_.dequeue(f))
     {
         f();
     }
-    t_loopInThisThread = nullptr; // 取消限制
+    t_loopInThisThread = nullptr;
+    // Throw the exception from the end
     if (loopException)
     {
-        spdlog::error("Rethrowing exception from EventLoop::loop");
+        ABSL_LOG(WARNING)<< "Rethrowing exception from event loop";
         std::rethrow_exception(loopException);
     }
 }
+
+
+
+//
+// void EventLoop::loop()
+// {
+//     assert(!looping_.load(std::memory_order_acquire)); // 确保没有重复调用loop
+//     assertInLoopThread();
+//     looping_.store(true, std::memory_order_release); // release语确保
+//     quit_.store(false, std::memory_order_release);
+//
+//     std::exception_ptr loopException;
+//
+//     try
+//     {
+//         auto loopFlagCleaner = utils::makeScopeExit(
+//                     [this]() { looping_.store(false, std::memory_order_release); });
+//         while (!quit_.load(std::memory_order_acquire))
+//         {
+//             activeDispatchers_.clear(); // 清空活跃的事件分发器列表
+//             poller_->poll(kPollTimeMs, &activeDispatchers_); // 轮询事件
+//             eventHandling_=true;
+//             for (auto& dispatcher : activeDispatchers_)
+//             {
+//                 currentActiveDispatcher_ = dispatcher; // 设置当前活跃的事件分发器
+//                 currentActiveDispatcher_->handleEvent(); // 处理事件
+//             }
+//             currentActiveDispatcher_ = nullptr; // 重置当前活跃的事件分发器
+//             eventHandling_ = false; // 事件处理结束
+//             doRunInLoopFuncs(); // 执行在事件循环中注册的函数
+//         }
+//     }catch (std::exception &e)
+//     {
+//         ABSL_LOG(ERROR) << "Exception caught in EventLoop::loop: " << e.what();
+//         loopException = std::current_exception();
+//     }
+//
+//     // 上述循环出现异常被退出
+//     Func f;
+//     while (funcsOnQuit_.dequeue(f)) // 执行退出时注册的函数
+//     {
+//         f();
+//     }
+//     t_loopInThisThread = nullptr; // 取消限制
+//     if (loopException)
+//     {
+//         ABSL_LOG(ERROR) << "Rethrowing exception from EventLoop::loop";
+//         std::rethrow_exception(loopException);
+//     }
+// }
 
 void EventLoop::quit()
 {
@@ -247,6 +340,10 @@ void EventLoop::resetTimerQueue()
 
 void EventLoop::queueInLoop(const Func &cb)
 {
+    if (!cb) // 如果回调函数为空，直接返回
+    {
+        return;
+    }
     funcs_.enqueue(cb);
     if (!isInLoopThread() || !looping_.load(std::memory_order_acquire))
     {
@@ -255,6 +352,10 @@ void EventLoop::queueInLoop(const Func &cb)
 }
 void EventLoop::queueInLoop(Func &&cb)
 {
+    if (!cb) // 如果回调函数为空，直接返回
+    {
+        return;
+    }
     funcs_.enqueue(std::move(cb));
     if (!isInLoopThread() || !looping_.load(std::memory_order_acquire))
     {

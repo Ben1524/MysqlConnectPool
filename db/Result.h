@@ -10,7 +10,6 @@
 #include <string>
 #include <future>
 #include <algorithm>
-#include <assert.h>
 
 // 取自libpqxx并修改
 // libpqxx的许可证见COPYING文件

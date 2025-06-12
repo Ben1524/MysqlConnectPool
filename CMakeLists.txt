@@ -4,7 +4,7 @@ message(STATUS "Using vcpkg toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/opt/vcpkg/installed/x64-linux/share")
 
 
-project(MysqlConnectPool)
+project(MySQLConnectPool)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -23,7 +23,7 @@ target_include_directories(project_headers
         INTERFACE
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/db
-        ${CMAKE_SOURCE_DIR}/MysqlImpl
+        ${CMAKE_SOURCE_DIR}/MySQL
         ${CMAKE_SOURCE_DIR}/third
 )
 
@@ -54,8 +54,9 @@ find_package(asio CONFIG REQUIRED)
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
-set(MYSQL_CONNECTOR_CXX_INCLUDE_DIR "/usr/include/mysql-cppconn-8" CACHE PATH "MySQL Connector/C++ 头文件路径")
-set(MYSQL_CONNECTOR_CXX_LIBRARIES "/usr/lib/x86_64-linux-gnu/libmysqlcppconn.so" CACHE FILEPATH "MySQL Connector/C++ 库文件路径")
+
+set(MYSQL_CONNECTOR_CXX_INCLUDE_DIR "/usr/include/mariadb/" CACHE PATH "MySQL Connector/C++ 头文件路径")
+set(MYSQL_CONNECTOR_CXX_LIBRARIES "/usr/lib/x86_64-linux-gnu/libmariadb.so" CACHE FILEPATH "MySQL Connector/C++ 库文件路径")
 include_directories(${MYSQL_CONNECTOR_CXX_INCLUDE_DIR})
 
 message(STATUS "protobuf version: ${protobuf_VERSION}")
@@ -66,7 +67,7 @@ include_directories(.)
 
 
 # 将核心功能作为库构建
-add_library(mysqlconnectpool_lib STATIC
+add_library(mysqlconnectpool_lib SHARED
         db/DatabaseManager.cpp
         db/DatabaseManager.h
         NonCopyable.h
@@ -85,10 +86,10 @@ add_library(mysqlconnectpool_lib STATIC
         db/Field.cpp
         utils/utils.cpp
         utils/utils.h
-        MysqlImpl/MysqlResultImpl.cpp
-        MysqlImpl/MysqlResultImpl.h
-        MysqlImpl/MysqlConnector.cpp
-        MysqlImpl/MysqlConnector.h
+        MySQLImpl/MySQLResultImpl.cpp
+        MySQLImpl/MySQLResultImpl.h
+        MySQLImpl/MySQLConnector.cpp
+        MySQLImpl/MySQLConnector.h
         db/DbConnection.h
         event/EventLoop.cpp
         event/EventLoop.h
@@ -104,13 +105,17 @@ add_library(mysqlconnectpool_lib STATIC
         utils/ScopeExit.h
         time/DateTime.cpp
         time/DateTime.h
+        db/DbTypes.h
+        db/DbConnection.cpp
 )
 
 
 
 target_link_libraries(mysqlconnectpool_lib PUBLIC
         ZLIB::ZLIB
-#        libmysqlclient.so
+        ${CMAKE_SOURCE_DIR}/lib/libmysqlcppconnx.so.2
+        ${MYSQL_CONNECTOR_CXX_LIBRARIES}
+        /usr/lib/x86_64-linux-gnu/libmariadb.so
         spdlog::spdlog
         JsonCpp::JsonCpp
         Threads::Threads
@@ -126,20 +131,21 @@ target_link_libraries(mysqlconnectpool_lib PUBLIC
 include_directories(
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/db
-        ${CMAKE_SOURCE_DIR}/MysqlImpl
+        ${CMAKE_SOURCE_DIR}/MySQL
         ${CMAKE_SOURCE_DIR}/third
         ${CMAKE_SOURCE_DIR}/third/mysqlx/devapi
 )
-add_executable(MysqlConnectPool main.cpp
+add_executable(MySQLConnectPool main.cpp
 )
 
 
 
 
-target_link_libraries(MysqlConnectPool
+target_link_libraries(MySQLConnectPool
         PRIVATE
         mysqlconnectpool_lib
         ZLIB::ZLIB
+        /usr/lib/x86_64-linux-gnu/libmariadb.so
         spdlog::spdlog
         JsonCpp::JsonCpp
         Threads::Threads
@@ -156,7 +162,7 @@ target_link_libraries(MysqlConnectPool
         absl::base
         absl::bits
 )
-target_include_directories(MysqlConnectPool
+target_include_directories(MySQLConnectPool
         PRIVATE
         ${Protobuf_INCLUDE_DIRS}
 )
@@ -175,6 +181,7 @@ if(TEST)
 
         # 创建测试可执行文件
         add_executable(${test_name} ${test_source}
+
         )
 
         # 链接必要的库

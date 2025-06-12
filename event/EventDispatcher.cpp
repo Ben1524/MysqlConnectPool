@@ -182,8 +182,8 @@ cxk::EventLoop *cxk::EventDispatcher::getLoop() const
 
 void cxk::EventDispatcher::tie(const std::shared_ptr<void> &obj)
 {
-    tied_ = true;
     tie_ = obj;
+    tied_ = true;
 }
 
 void cxk::EventDispatcher::enableReading()
@@ -212,13 +212,13 @@ void cxk::EventDispatcher::disableWriting()
 
 const int cxk::EventDispatcher::getKReadEvent()
 {
-    static const int kReadEvent = 1 << 0; // 读事件
+    static const int kReadEvent = POLLIN | POLLPRI; // 读事件
     return kReadEvent;
 }
 
 const int cxk::EventDispatcher::getKWriteEvent()
 {
-    static const int kWriteEvent = 1 << 1; // 写事件
+    static const int kWriteEvent = POLLOUT; // 写事件
     return kWriteEvent;
 }
 
